@@ -1,0 +1,23 @@
+version: '2'
+services:
+
+  vk-bot:
+    restart: always
+    build: ./vk_bot
+    env_file: .env
+    container_name: vk-bot
+    command: bash -c "python bot.py"
+    volumes:
+      - ./vk_bot:/vk_bot
+
+  tg-bot:
+    restart: always
+    build: ./tg_bot
+    env_file: .env
+    container_name: tg-bot
+    command: bash -c "python bot.py"
+    volumes:
+      - ./tg_bot:/tg_bot
+
+volumes:
+  db-vm:
