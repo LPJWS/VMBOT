@@ -5,6 +5,9 @@ from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from config import Config
 import telebot
 
+from typing import Union
+from vk_api.vk_api import VkApiMethod
+
 
 TG = telebot.TeleBot(Config.TG_TOKEN)
 VK_SESSION = vk_api.VkApi(token=Config.VK_TOKEN)
@@ -17,14 +20,21 @@ def vk_required(func):
     return wrapper
 
 
-def get_timestamp():
+def get_timestamp() -> None:
     return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
 
 @vk_required
-def get_name_by_id(user_id, vk=None):
+def get_name_by_id(user_id: Union[int, str], vk: "VkApiMethod"=None) -> str:
     t = vk.users.get(user_ids=(user_id,), lang='ru')[0]
     return f"{t['first_name']} {t['last_name']}"
+
+
+def prepare_message(raw_message: str) -> str:
+    symbols_to_escape = "._*~()[]|-"
+    for symbol in symbols_to_escape:
+        raw_message = raw_message.replace(symbol, f"\{symbol}")
+    return raw_message
 
 
 if __name__ == '__main__':
@@ -37,16 +47,7 @@ if __name__ == '__main__':
                 if event.from_chat:
                     from_id = event.obj.message["from_id"]
                     from_name = get_name_by_id(from_id)
-                    text = event.obj.message["text"] \
-                        .replace(".", "\.") \
-                        .replace("_", "\_") \
-                        .replace("*", "\*") \
-                        .replace("~", "\~") \
-                        .replace("(", "\(") \
-                        .replace(")", "\)") \
-                        .replace("[", "\[") \
-                        .replace("]", "\]") \
-                        .replace("|", "\|")
+                    text = prepare_message(event.obj.message["text"])
                     attachments = event.obj.message["attachments"]
                     # print(attachments)
                     
