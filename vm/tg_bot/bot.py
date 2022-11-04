@@ -16,7 +16,15 @@ def get_timestamp():
     return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
 
+def chat_check(func):
+    def wrapper(message):
+        if str(message.chat.id) == Config.TG_CHAT_ID:
+            func(message)
+    return wrapper
+
+
 @TG.message_handler(content_types=['text'])
+@chat_check
 def get_text_messages(message):
     VK.messages.send(
         chat_id=Config.VK_CHAT_ID, 
@@ -26,6 +34,7 @@ def get_text_messages(message):
 
 
 @TG.message_handler(content_types=['photo'])
+@chat_check
 def get_photo_messages(message: telebot.types.Message):
     file = TG.get_file(message.photo[-1].file_id)
     ba = TG.download_file(file.file_path)
@@ -43,8 +52,27 @@ def get_photo_messages(message: telebot.types.Message):
 
 
 @TG.message_handler(content_types=['sticker'])
+@chat_check
 def get_sticker_messages(message: telebot.types.Message):
     file = TG.get_file(message.sticker.file_id)
+    ba = TG.download_file(file.file_path)
+
+    server = VK.docs.getMessagesUploadServer(peer_id=f"{2000000000 + int(Config.VK_CHAT_ID)}")['upload_url']
+    pfile = requests.post(server, files={'file': (file.file_path.split("/")[1], ba)}).json()
+    doc = VK.docs.save(file=pfile['file'], title=file.file_path.split("/")[1])
+    attachments = ['doc%s_%s' % (doc['doc']['owner_id'], doc['doc']['id'])]
+
+    VK.messages.send(
+        chat_id=Config.VK_CHAT_ID, 
+        random_id=get_random_id(), 
+        attachment=",".join(attachments)
+    )
+
+
+@TG.message_handler(content_types=['animation'])
+@chat_check
+def get_document_messages(message: telebot.types.Message):
+    file = TG.get_file(message.animation.file_id)
     ba = TG.download_file(file.file_path)
 
     server = VK.docs.getMessagesUploadServer(peer_id=f"{2000000000 + int(Config.VK_CHAT_ID)}")['upload_url']

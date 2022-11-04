@@ -31,7 +31,7 @@ def get_name_by_id(user_id: Union[int, str], vk: "VkApiMethod"=None) -> str:
 
 
 def prepare_message(raw_message: str) -> str:
-    symbols_to_escape = "._*~()[]|-"
+    symbols_to_escape = "._*~()[]|-="
     for symbol in symbols_to_escape:
         raw_message = raw_message.replace(symbol, f"\{symbol}")
     return raw_message
@@ -44,12 +44,18 @@ if __name__ == '__main__':
     while True:
         try:
             for event in longpoll.listen():
-                if event.from_chat:
+                if event.from_chat and str(event.chat_id) == Config.VK_CHAT_ID:
                     from_id = event.obj.message["from_id"]
                     from_name = get_name_by_id(from_id)
                     text = prepare_message(event.obj.message["text"])
                     attachments = event.obj.message["attachments"]
+                    reply = event.obj.message.get("reply_message")
+                    if reply:
+                        reply_name = get_name_by_id(reply["from_id"])
+                        reply_text = prepare_message(reply["text"])
                     # print(attachments)
+
+                    print(reply)
                     
                     if attachments:
                         for attachment in attachments:
@@ -76,11 +82,18 @@ if __name__ == '__main__':
                                     parse_mode="MarkdownV2"
                                 )
                     else:
-                        TG.send_message(
-                            Config.TG_CHAT_ID, 
-                            f"*{from_name}:*\n{text}",
-                            parse_mode="MarkdownV2"
-                        )
+                        if reply:
+                            TG.send_message(
+                                Config.TG_CHAT_ID, 
+                                f"*{from_name}:*\n{text}\n_В ответ на:_\n```\n{reply_name}:\n{reply_text}\n```",
+                                parse_mode="MarkdownV2"
+                            )
+                        else:
+                            TG.send_message(
+                                Config.TG_CHAT_ID, 
+                                f"*{from_name}:*\n{text}",
+                                parse_mode="MarkdownV2"
+                            )
         except Exception as e:
             print(e)
             continue
